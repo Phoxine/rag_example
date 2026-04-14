@@ -29,6 +29,12 @@ RAG applications consist of two main components:
 pip install -r requirements.txt
 ```
 
+The requirements include:
+- `langchain` ecosystem for RAG implementation
+- `chromadb` for vector storage
+- `sentence-transformers` and `langchain-huggingface` for Hugging Face embeddings support
+- `openai` for OpenAI API access
+
 ### Set API Key
 
 Configure your OpenAI API key:
@@ -39,6 +45,19 @@ export OPENAI_API_KEY="your-api-key-here"
 
 Or the scripts will prompt you to enter it when run.
 
+## Embedding Configuration
+
+This project supports two embedding providers:
+
+- **OpenAI Embeddings** (default): Uses `text-embedding-3-small` model. Requires OpenAI API key.
+- **Hugging Face Embeddings**: Uses local `sentence-transformers/all-MiniLM-L6-v2` model. No API key required.
+
+To switch between embeddings, modify the `EMBEDDING_TYPE` variable in each script:
+- Set `EMBEDDING_TYPE = "openai"` for OpenAI embeddings
+- Set `EMBEDDING_TYPE = "huggingface"` for Hugging Face embeddings
+
+**Note**: Hugging Face embeddings run locally and may be slower on first use while downloading the model.
+
 ## Project Structure
 
 ### 1. `1_indexing.py` - Indexing Pipeline
@@ -47,7 +66,7 @@ Demonstrates the indexing portion of a RAG application:
 
 - **Load Documents**: Uses `WebBaseLoader` to load content from web URLs
 - **Split Documents**: Uses `RecursiveCharacterTextSplitter` to split large documents into 1000-character chunks with 200-character overlap
-- **Store Documents**: Embeds chunks using OpenAI embeddings and stores them in `Chroma` when available; otherwise the code falls back to `InMemoryVectorStore`
+- **Store Documents**: Embeds chunks using configurable embeddings (OpenAI or Hugging Face) and stores them in `Chroma` when available; otherwise the code falls back to `InMemoryVectorStore`
 
 **Run with**:
 ```bash
@@ -58,7 +77,7 @@ python 1_indexing.py
 
 Demonstrates an intelligent RAG agent with tool-based retrieval:
 
-- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one
+- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face)
 - **Retrieval Tool**: Uses LangChain's `create_tool_calling_agent` with a custom retrieval tool
 - **Intelligent Decisions**: Agent decides when and how to use the retrieval tool
 - **Multi-step Reasoning**: Can execute multiple retrievals to answer complex questions
@@ -100,7 +119,7 @@ Loaded existing Chroma database
 
 Demonstrates a simplified two-step RAG approach:
 
-- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one
+- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face)
 - **Single-step Retrieval**: Always retrieves documents matching the user query
 - **Single LLM Call**: Generates answer in one inference call
 - **Low Latency**: Optimized for fast response times
@@ -213,7 +232,7 @@ Retrieved 4 relevant documents
 ## Concepts and Terminology
 
 - **Document**: An object containing text content and metadata
-- **Embedding**: A vector representation of text content
+- **Embedding**: A vector representation of text content (supports OpenAI and Hugging Face models)
 - **Vector Store**: A system for storing and querying embeddings
 - **Retriever**: An object that finds relevant documents based on queries
 - **Tool**: A function that agents can use
@@ -238,6 +257,7 @@ RAG applications are susceptible to indirect prompt injection. Retrieved documen
 
 ## Next Steps
 
+- Experiment with different embedding models (OpenAI `text-embedding-3-large`, other Hugging Face models)
 - Add [conversation memory](https://docs.langchain.com/oss/python/langchain/short-term-memory) to support multi-turn interactions
 - Add [long-term memory](https://docs.langchain.com/oss/python/langchain/long-term-memory) across conversation threads
 - Implement [structured responses](https://docs.langchain.com/oss/python/langchain/structured-output)

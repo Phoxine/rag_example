@@ -26,7 +26,7 @@ except ImportError:
     CHROMA_AVAILABLE = False
 
 # Embedding configuration
-EMBEDDING_TYPE = "huggingface"  # Options: "openai" or "huggingface"
+EMBEDDING_TYPE = "openai"  # Options: "openai" or "huggingface"
 
 # Setup API key (only needed for OpenAI)
 if EMBEDDING_TYPE == "openai" and not os.environ.get("OPENAI_API_KEY"):
