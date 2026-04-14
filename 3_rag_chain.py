@@ -37,56 +37,89 @@ def build_vector_store():
     """Build and return the indexed vector store."""
     print("Building vector store...")
     
+    import os
+    from hashlib import md5
+
+    # 1️⃣ embeddings
     if EMBEDDING_TYPE == "openai":
         embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     elif EMBEDDING_TYPE == "huggingface":
-        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
     else:
-        raise ValueError(f"Unsupported EMBEDDING_TYPE: {EMBEDDING_TYPE}. Choose 'openai' or 'huggingface'.")
-    
-    # Try to load existing Chroma database first
-    if CHROMA_AVAILABLE:
-        import os.path
-        if os.path.exists("./chroma_db"):
-            print("Loading existing Chroma database from ./chroma_db...")
-            vector_store = Chroma(
-                embedding_function=embeddings,
-                persist_directory="./chroma_db",
-            )
-            print(f"Loaded existing Chroma database\n")
-            return vector_store
-    
-    # If no existing database, create a new one
+        raise ValueError(f"Unsupported EMBEDDING_TYPE: {EMBEDDING_TYPE}")
+
+    # 2. If DB exists → Load directly (key optimization!)
+    if CHROMA_AVAILABLE and os.path.exists("./chroma_db"):
+        print("Loading existing Chroma database...")
+        vector_store = Chroma(
+            embedding_function=embeddings,
+            persist_directory="./chroma_db",
+        )
+        print("Loaded existing DB (skip embedding)\n")
+        return vector_store
+
     print("Creating new vector store...\n")
+
+    # 3. Load documents
+    urls = [
+        "https://lilianweng.github.io/posts/2023-06-23-agent/",
+        "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/"
+    ]
     
-    # Load documents
-    bs4_strainer = bs4.SoupStrainer(class_=("post-title", "post-header", "post-content"))
+    bs4_strainer = bs4.SoupStrainer(
+        class_=("post-title", "post-header", "post-content")
+    )
+    
     loader = WebBaseLoader(
-        web_paths=("https://lilianweng.github.io/posts/2023-06-23-agent/",),
+        web_paths=urls,
         bs_kwargs={"parse_only": bs4_strainer},
     )
-    docs = loader.load()
     
-    # Split documents
+    docs = loader.load()
+
+    # 4. Split documents (optimized chunk size)
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=500,      # Smaller chunks for better precision
+        chunk_overlap=100,
         add_start_index=True,
     )
-    all_splits = text_splitter.split_documents(docs)
     
+    all_splits = text_splitter.split_documents(docs)
+
+    # 5. Add metadata (very important!)
+    for i, doc in enumerate(all_splits):
+        content_hash = md5(doc.page_content.encode()).hexdigest()
+
+        source = doc.metadata.get("source", "unknown")
+
+        doc.metadata.update({
+            "source": source,
+            "doc_id": md5(source.encode()).hexdigest(),
+            "chunk_id": i,
+            "doc_hash": content_hash,
+        })
+
+    # 6. Create vector database
     if CHROMA_AVAILABLE:
         vector_store = Chroma.from_documents(
             documents=all_splits,
             embedding=embeddings,
             persist_directory="./chroma_db",
         )
+
         vector_store.persist()
-        print(f"Created and persisted Chroma vector store with {len(all_splits)} documents\n")
+
+        print(f"Created Chroma DB with {len(all_splits)} chunks")
+        print("Persisted to ./chroma_db\n")
+
     else:
         vector_store = InMemoryVectorStore(embeddings)
-        vector_store.add_documents(documents=all_splits)
-        print(f"Created in-memory vector store with {len(all_splits)} documents\n")
+        vector_store.add_documents(all_splits)
+
+        print(f"Created in-memory store with {len(all_splits)} chunks\n")
+
     return vector_store
 
 

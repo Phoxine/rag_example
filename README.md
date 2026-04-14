@@ -64,8 +64,8 @@ To switch between embeddings, modify the `EMBEDDING_TYPE` variable in each scrip
 
 Demonstrates the indexing portion of a RAG application:
 
-- **Load Documents**: Uses `WebBaseLoader` to load content from web URLs
-- **Split Documents**: Uses `RecursiveCharacterTextSplitter` to split large documents into 1000-character chunks with 200-character overlap
+- **Load Documents**: Uses `WebBaseLoader` to load content from two web URLs (agent and prompt engineering posts)
+- **Split Documents**: Uses `RecursiveCharacterTextSplitter` to split large documents into 500-character chunks with 100-character overlap
 - **Store Documents**: Embeds chunks using configurable embeddings (OpenAI or Hugging Face) and stores them in `Chroma` when available; otherwise the code falls back to `InMemoryVectorStore`
 
 **Run with**:
@@ -77,7 +77,7 @@ python 1_indexing.py
 
 Demonstrates an intelligent RAG agent with tool-based retrieval:
 
-- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face)
+- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face) from two blog posts with optimized 500-char chunks
 - **Retrieval Tool**: Uses LangChain's `create_tool_calling_agent` with a custom retrieval tool
 - **Intelligent Decisions**: Agent decides when and how to use the retrieval tool
 - **Multi-step Reasoning**: Can execute multiple retrievals to answer complex questions
@@ -119,7 +119,7 @@ Loaded existing Chroma database
 
 Demonstrates a simplified two-step RAG approach:
 
-- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face)
+- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face) from two blog posts with optimized 500-char chunks
 - **Single-step Retrieval**: Always retrieves documents matching the user query
 - **Single LLM Call**: Generates answer in one inference call
 - **Low Latency**: Optimized for fast response times
@@ -162,14 +162,14 @@ RAG Indexing Pipeline
 ============================================================
 
 Loading documents from web...
-Loaded 1 document(s)
-Total characters: 43131
+Loaded 2 document(s)
+Total characters: 72333
 
 Splitting documents...
-Split into 66 sub-documents
+Split into 225 sub-documents
 
 Creating embeddings and storing documents...
-Stored 66 documents in Chroma vector store
+Stored 225 documents in Chroma vector store
 Chroma database persisted to ./chroma_db
 
 Testing retrieval with a sample query...
@@ -189,7 +189,7 @@ Creating new vector store...
 
 Loading documents from web...
 Splitting documents...
-Created and persisted Chroma vector store with 66 documents
+Created and persisted Chroma vector store with 225 documents
 
 RAG Agent created successfully!
 Running sample queries...
@@ -234,7 +234,7 @@ Retrieved 4 relevant documents
 
 ## Concepts and Terminology
 
-- **Document**: An object containing text content and metadata
+- **Document**: An object containing text content and metadata (source URL, document ID, chunk ID, content hash)
 - **Embedding**: A vector representation of text content (supports OpenAI and Hugging Face models)
 - **Vector Store**: A system for storing and querying embeddings
 - **Retriever**: An object that finds relevant documents based on queries

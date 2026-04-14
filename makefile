@@ -14,3 +14,7 @@ agent:
 chain:
 	. .venv/bin/activate && python 3_rag_chain.py
 .PHONY: chain
+
+rm_db:
+	rm -rf chroma_db
+.PHONY: rm_db
