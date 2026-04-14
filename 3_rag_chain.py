@@ -33,6 +33,23 @@ def build_vector_store():
     """Build and return the indexed vector store."""
     print("Building vector store...")
     
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    
+    # Try to load existing Chroma database first
+    if CHROMA_AVAILABLE:
+        import os.path
+        if os.path.exists("./chroma_db"):
+            print("Loading existing Chroma database from ./chroma_db...")
+            vector_store = Chroma(
+                embedding_function=embeddings,
+                persist_directory="./chroma_db",
+            )
+            print(f"Loaded existing Chroma database\n")
+            return vector_store
+    
+    # If no existing database, create a new one
+    print("Creating new vector store...\n")
+    
     # Load documents
     bs4_strainer = bs4.SoupStrainer(class_=("post-title", "post-header", "post-content"))
     loader = WebBaseLoader(
@@ -49,7 +66,6 @@ def build_vector_store():
     )
     all_splits = text_splitter.split_documents(docs)
     
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     if CHROMA_AVAILABLE:
         vector_store = Chroma.from_documents(
             documents=all_splits,
@@ -57,11 +73,11 @@ def build_vector_store():
             persist_directory="./chroma_db",
         )
         vector_store.persist()
-        print(f"Chroma vector store built with {len(all_splits)} documents\n")
+        print(f"Created and persisted Chroma vector store with {len(all_splits)} documents\n")
     else:
         vector_store = InMemoryVectorStore(embeddings)
         vector_store.add_documents(documents=all_splits)
-        print(f"In-memory vector store built with {len(all_splits)} documents\n")
+        print(f"Created in-memory vector store with {len(all_splits)} documents\n")
     return vector_store
 
 

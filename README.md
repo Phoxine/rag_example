@@ -56,43 +56,81 @@ python 1_indexing.py
 
 ### 2. `2_rag_agent.py` - RAG Agent
 
-Demonstrates retrieval and generation using an agent:
+Demonstrates an intelligent RAG agent with tool-based retrieval:
 
-- **Retrieval Tool**: Defines a tool that the agent can use to retrieve context
-- **Smart Search**: Agent decides when and what to search for
-- **Multi-step Reasoning**: Agent can execute multiple searches to support a single user query
+- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one
+- **Retrieval Tool**: Uses LangChain's `create_tool_calling_agent` with a custom retrieval tool
+- **Intelligent Decisions**: Agent decides when and how to use the retrieval tool
+- **Multi-step Reasoning**: Can execute multiple retrievals to answer complex questions
 
 **Features**:
-- ✅ Search only when needed (handles greetings and follow-ups without searching)
-- ✅ Contextual search queries (LLM crafts queries incorporating context)
-- ✅ Multiple searches allowed
-- ❌ Two inference calls (one to generate query, one for answer)
-- ❌ Reduced control (LLM may skip necessary searches)
+- ✅ Database persistence (reuses indexed data on subsequent runs)
+- ✅ Smart search decisions (searches only when needed)
+- ✅ Tool-based retrieval (LangChain agent framework)
+- ✅ Flexible reasoning (multi-step problem solving)
+- ⚡ Efficient (no re-indexing on repeat runs)
+
+**Workflow**:
+1. Check if `./chroma_db` exists → Load it (fast!)
+2. Otherwise, index documents from web and save to `./chroma_db`
+3. Create agent with retrieval tool
+4. Run sample queries or enter interactive mode
 
 **Run with**:
 ```bash
 python 2_rag_agent.py
 ```
 
+**First run** (creates database):
+```bash
+Building vector store...
+Creating new vector store...
+Loading documents from web...
+Created and persisted Chroma vector store with 66 documents
+```
+
+**Subsequent runs** (loads existing database):
+```bash
+Building vector store...
+Loading existing Chroma database from ./chroma_db...
+Loaded existing Chroma database
+```
+
 ### 3. `3_rag_chain.py` - RAG Chain
 
-Demonstrates a simplified two-step RAG chain:
+Demonstrates a simplified two-step RAG approach:
 
-- **Retrieve**: Always search using the user query
-- **Generate**: Pass retrieved context with the query in a single LLM call
-- **Single Inference**: One LLM call per query for lower latency
+- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one
+- **Single-step Retrieval**: Always retrieves documents matching the user query
+- **Single LLM Call**: Generates answer in one inference call
+- **Low Latency**: Optimized for fast response times
+
+**Workflow**:
+1. Check if `./chroma_db` exists → Load it (fast!)
+2. Otherwise, index documents from web and save to `./chroma_db`
+3. For each query:
+   - Retrieve relevant documents via semantic search
+   - Pass documents as context to the LLM
+   - Return the generated answer
 
 **Features**:
-- ✅ Single inference call (low latency)
-- ✅ Simple and straightforward implementation
-- ✅ Good for simple, constrained queries
-- ❌ Always searches (less flexible)
-- ❌ Unconditional context (doesn't consider conversation state)
+- ✅ Database persistence (reuses indexed data on subsequent runs)
+- ✅ Single inference call (low latency, cost-effective)
+- ✅ Simple and reliable implementation
+- ✅ Good for straightforward Q&A
+- ❌ No intelligent search decisions (always searches)
 
 **Run with**:
 ```bash
 python 3_rag_chain.py
 ```
+
+### Shared Database
+
+Both `2_rag_agent.py` and `3_rag_chain.py` use the same `./chroma_db` directory:
+- Run `1_indexing.py` first to create the database, OR
+- Run either `2_rag_agent.py` or `3_rag_chain.py` (they'll create it if missing)
+- Subsequent runs are **much faster** since they reuse the existing database
 
 ## Usage Examples
 
@@ -112,7 +150,8 @@ Splitting documents...
 Split into 66 sub-documents
 
 Creating embeddings and storing documents...
-Stored 66 documents in vector store
+Stored 66 documents in Chroma vector store
+Chroma database persisted to ./chroma_db
 
 Testing retrieval with a sample query...
 
@@ -122,13 +161,32 @@ Retrieved 2 documents:
 ...
 ```
 
-### Running the RAG Agent
+### Running the RAG Agent (First Time)
 
 ```bash
 $ python 2_rag_agent.py
-...
-Your question: What is task decomposition?
+Building vector store...
+Creating new vector store...
 
+Loading documents from web...
+Splitting documents...
+Created and persisted Chroma vector store with 66 documents
+
+RAG Agent created successfully!
+Running sample queries...
+```
+
+### Running the RAG Agent (Subsequent Times - Much Faster!)
+
+```bash
+$ python 2_rag_agent.py
+Building vector store...
+Loading existing Chroma database from ./chroma_db...
+Loaded existing Chroma database
+
+RAG Agent created successfully!
+Running sample queries...
+```
 Agent thinking...
 
 ================================ Human Message =================================
