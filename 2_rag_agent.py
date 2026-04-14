@@ -13,6 +13,7 @@ import bs4
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.tools import tool
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
@@ -24,8 +25,11 @@ except ImportError:
     from langchain_core.vectorstores import InMemoryVectorStore
     CHROMA_AVAILABLE = False
 
-# Setup API key
-if not os.environ.get("OPENAI_API_KEY"):
+# Embedding configuration
+EMBEDDING_TYPE = "huggingface"  # Options: "openai" or "huggingface"
+
+# Setup API key (only needed for OpenAI)
+if EMBEDDING_TYPE == "openai" and not os.environ.get("OPENAI_API_KEY"):
     import getpass
     os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your OpenAI API key: ")
 
@@ -34,7 +38,12 @@ def build_vector_store():
     """Build and return the indexed vector store."""
     print("Building vector store...")
     
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    if EMBEDDING_TYPE == "openai":
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    elif EMBEDDING_TYPE == "huggingface":
+        embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    else:
+        raise ValueError(f"Unsupported EMBEDDING_TYPE: {EMBEDDING_TYPE}. Choose 'openai' or 'huggingface'.")
     
     # Try to load existing Chroma database first
     if CHROMA_AVAILABLE:
