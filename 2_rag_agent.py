@@ -89,37 +89,49 @@ def build_vector_store():
     
     all_splits = text_splitter.split_documents(docs)
 
-    # 5. Add metadata (very important!)
+    # 5. Add metadata and deduplicate (very important!)
+    seen_hashes = set()
+    unique_docs = []
+
     for i, doc in enumerate(all_splits):
         content_hash = md5(doc.page_content.encode()).hexdigest()
+
+        # Skip duplicates
+        if content_hash in seen_hashes:
+            continue
 
         source = doc.metadata.get("source", "unknown")
 
         doc.metadata.update({
             "source": source,
             "doc_id": md5(source.encode()).hexdigest(),
-            "chunk_id": i,
+            "chunk_id": len(unique_docs),  # Use unique_docs length as chunk_id
             "doc_hash": content_hash,
         })
+
+        seen_hashes.add(content_hash)
+        unique_docs.append(doc)
+
+    print(f"Deduplicated: {len(all_splits)} → {len(unique_docs)} unique chunks")
 
     # 6. Create vector database
     if CHROMA_AVAILABLE:
         vector_store = Chroma.from_documents(
-            documents=all_splits,
+            documents=unique_docs,
             embedding=embeddings,
             persist_directory="./chroma_db",
         )
 
         vector_store.persist()
 
-        print(f"Created Chroma DB with {len(all_splits)} chunks")
+        print(f"Created Chroma DB with {len(unique_docs)} chunks")
         print("Persisted to ./chroma_db\n")
 
     else:
         vector_store = InMemoryVectorStore(embeddings)
-        vector_store.add_documents(all_splits)
+        vector_store.add_documents(unique_docs)
 
-        print(f"Created in-memory store with {len(all_splits)} chunks\n")
+        print(f"Created in-memory store with {len(unique_docs)} chunks\n")
 
     return vector_store
 

@@ -69,27 +69,38 @@ def split_documents(docs):
     )
     all_splits = text_splitter.split_documents(docs)
     
-    # Add metadata (very important!)
+    # Add metadata and deduplicate (very important!)
     from hashlib import md5
+    seen_hashes = set()
+    unique_docs = []
+
     for i, doc in enumerate(all_splits):
         content_hash = md5(doc.page_content.encode()).hexdigest()
+
+        # Skip duplicates
+        if content_hash in seen_hashes:
+            continue
 
         source = doc.metadata.get("source", "unknown")
 
         doc.metadata.update({
             "source": source,
             "doc_id": md5(source.encode()).hexdigest(),
-            "chunk_id": i,
+            "chunk_id": len(unique_docs),  # Use unique_docs length as chunk_id
             "doc_hash": content_hash,
         })
+
+        seen_hashes.add(content_hash)
+        unique_docs.append(doc)
     
     print(f"Split into {len(all_splits)} sub-documents")
-    print(f"\nExample chunk:\n{all_splits[0].page_content[:200]}\n")
+    print(f"Deduplicated: {len(all_splits)} → {len(unique_docs)} unique chunks")
+    print(f"\nExample chunk:\n{unique_docs[0].page_content[:200]}\n")
     
-    return all_splits
+    return unique_docs
 
 
-def store_documents(all_splits):
+def store_documents(unique_docs):
     """
     Create embeddings and store documents in a vector store.
     """
@@ -104,17 +115,17 @@ def store_documents(all_splits):
     
     if CHROMA_AVAILABLE:
         vector_store = Chroma.from_documents(
-            documents=all_splits,
+            documents=unique_docs,
             embedding=embeddings,
             persist_directory="./chroma_db",
         )
         vector_store.persist()
-        print(f"Created Chroma DB with {len(all_splits)} chunks")
+        print(f"Created Chroma DB with {len(unique_docs)} chunks")
         print("Persisted to ./chroma_db\n")
     else:
         vector_store = InMemoryVectorStore(embeddings)
-        document_ids = vector_store.add_documents(documents=all_splits)
-        print(f"Created in-memory store with {len(all_splits)} chunks\n")
+        document_ids = vector_store.add_documents(documents=unique_docs)
+        print(f"Created in-memory store with {len(unique_docs)} chunks\n")
     
     return vector_store
 
@@ -154,24 +165,30 @@ def main():
     print("=" * 60 + "\n")
     
     vector_store = None
-    if os.path.exists("./chroma_db"):
+    if CHROMA_AVAILABLE and os.path.exists("./chroma_db"):
         print("Loading existing Chroma database...")
+        
+        if EMBEDDING_TYPE == "openai":
+            embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+        elif EMBEDDING_TYPE == "huggingface":
+            embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        else:
+            raise ValueError(f"Unsupported EMBEDDING_TYPE: {EMBEDDING_TYPE}")
+        
         vector_store = Chroma(
-            embedding_function=HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2"
-            ),
+            embedding_function=embeddings,
             persist_directory="./chroma_db",
         )
-        print("Loaded existing DB (skip embedding)\n")
+        print("Loaded existing DB (skip processing)\n")
     else:
         # Step 1: Load documents
         docs = load_documents()
         
-        # Step 2: Split documents
-        all_splits = split_documents(docs)
+        # Step 2: Split documents and deduplicate
+        unique_docs = split_documents(docs)
         
         # Step 3: Store documents
-        vector_store = store_documents(all_splits)
+        vector_store = store_documents(unique_docs)
     
     
     # Step 4: Test retrieval

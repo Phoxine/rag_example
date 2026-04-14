@@ -65,7 +65,7 @@ To switch between embeddings, modify the `EMBEDDING_TYPE` variable in each scrip
 Demonstrates the indexing portion of a RAG application:
 
 - **Load Documents**: Uses `WebBaseLoader` to load content from two web URLs (agent and prompt engineering posts)
-- **Split Documents**: Uses `RecursiveCharacterTextSplitter` to split large documents into 500-character chunks with 100-character overlap
+- **Split Documents**: Uses `RecursiveCharacterTextSplitter` to split large documents into 500-character chunks with 100-character overlap, and removes duplicates based on content hash
 - **Store Documents**: Embeds chunks using configurable embeddings (OpenAI or Hugging Face) and stores them in `Chroma` when available; otherwise the code falls back to `InMemoryVectorStore`
 
 **Run with**:
@@ -77,7 +77,7 @@ python 1_indexing.py
 
 Demonstrates an intelligent RAG agent with tool-based retrieval:
 
-- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face) from two blog posts with optimized 500-char chunks
+- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face) from two blog posts with optimized 500-char chunks and deduplication
 - **Retrieval Tool**: Uses LangChain's `create_tool_calling_agent` with a custom retrieval tool
 - **Intelligent Decisions**: Agent decides when and how to use the retrieval tool
 - **Multi-step Reasoning**: Can execute multiple retrievals to answer complex questions
@@ -119,7 +119,7 @@ Loaded existing Chroma database
 
 Demonstrates a simplified two-step RAG approach:
 
-- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face) from two blog posts with optimized 500-char chunks
+- **Smart Vector Store Loading**: Loads existing `Chroma` database if available; otherwise creates a new one using configurable embeddings (OpenAI or Hugging Face) from two blog posts with optimized 500-char chunks and deduplication
 - **Single-step Retrieval**: Always retrieves documents matching the user query
 - **Single LLM Call**: Generates answer in one inference call
 - **Low Latency**: Optimized for fast response times
@@ -259,6 +259,48 @@ RAG applications are susceptible to indirect prompt injection. Retrieved documen
 3. **Validate Responses**: Check that the model's output matches expected format and handle unexpected formats gracefully
 
 ## Next Steps
+
+- **Implement incremental indexing**: Add an `incremental_index()` function to only add new documents to existing vector stores, avoiding re-processing of unchanged content. Here's an example implementation:
+
+  ```python
+  def incremental_index(urls, vector_store_path="./chroma_db", embedding_provider="openai"):
+      """Incrementally index new documents by checking existing document hashes."""
+      # Load existing vector store
+      vector_store = load_vector_store(vector_store_path, embedding_provider)
+      
+      # Get existing document hashes from metadata
+      existing_hashes = set()
+      if hasattr(vector_store, '_collection'):
+          try:
+              results = vector_store._collection.get(include=['metadatas'])
+              for metadata in results['metadatas']:
+                  if 'doc_hash' in metadata:
+                      existing_hashes.add(metadata['doc_hash'])
+          except:
+              pass  # No existing collection or error
+      
+      # Load and process new documents
+      docs = load_documents(urls)
+      new_docs = []
+      
+      for doc in docs:
+          doc_hash = hashlib.md5(doc.page_content.encode()).hexdigest()
+          if doc_hash not in existing_hashes:
+              # Add metadata
+              doc.metadata['doc_hash'] = doc_hash
+              doc.metadata['indexed_at'] = datetime.now().isoformat()
+              new_docs.append(doc)
+      
+      if new_docs:
+          # Split and add new documents only
+          split_docs = split_documents(new_docs)
+          vector_store.add_documents(split_docs)
+          print(f"Added {len(split_docs)} new document chunks")
+      else:
+          print("No new documents to index")
+      
+      return vector_store
+  ```
 
 - Experiment with different embedding models (OpenAI `text-embedding-3-large`, other Hugging Face models)
 - Add [conversation memory](https://docs.langchain.com/oss/python/langchain/short-term-memory) to support multi-turn interactions
