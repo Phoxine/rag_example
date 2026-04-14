@@ -206,12 +206,15 @@ Loaded existing Chroma database
 RAG Agent created successfully!
 Running sample queries...
 ```
+
+```
 Agent thinking...
 
 ================================ Human Message =================================
 What is task decomposition?
 ================================== Ai Message ==================================
 Task decomposition is a technique used in AI systems...
+
 ```
 
 ### Running the RAG Chain
