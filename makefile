@@ -15,6 +15,10 @@ chain:
 	. .venv/bin/activate && python 3_rag_chain.py
 .PHONY: chain
 
+incremental_index:
+	. .venv/bin/activate && python 4_incremental_index.py
+.PHONY: incremental_index
+
 rm_db:
 	rm -rf chroma_db
 .PHONY: rm_db
