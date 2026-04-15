@@ -144,11 +144,43 @@ Demonstrates a simplified two-step RAG approach:
 python 3_rag_chain.py
 ```
 
+### 4. `4_incremental_index.py` - Incremental Indexing
+
+Demonstrates incremental indexing to avoid re-processing existing documents:
+
+- **Load Vector Store**: Loads existing Chroma database or creates new one if it doesn't exist
+- **Check Existing Hashes**: Retrieves document hashes from metadata to identify already indexed content
+- **Load New Documents**: Loads documents from provided URLs
+- **Incremental Processing**: Only processes and adds new documents that haven't been indexed before
+- **Test Retrieval**: Tests the updated vector store with sample queries
+
+**Features**:
+- ✅ Avoids duplicate processing (checks document hashes)
+- ✅ Efficient updates (only indexes new content)
+- ✅ Metadata tracking (adds indexing timestamps)
+- ✅ Database persistence (updates existing Chroma database)
+- ⚡ Fast for large existing databases
+
+**Workflow**:
+1. Load existing vector store from `./chroma_db`
+2. Extract existing document hashes from metadata
+3. Load new documents from URLs
+4. Filter out already indexed documents
+5. Split and embed only new documents
+6. Add new chunks to vector store
+7. Test retrieval with sample queries
+
+**Run with**:
+```bash
+python 4_incremental_index.py
+```
+
 ### Shared Database
 
-Both `2_rag_agent.py` and `3_rag_chain.py` use the same `./chroma_db` directory:
-- Run `1_indexing.py` first to create the database, OR
-- Run either `2_rag_agent.py` or `3_rag_chain.py` (they'll create it if missing)
+All scripts (`1_indexing.py`, `2_rag_agent.py`, `3_rag_chain.py`, and `4_incremental_index.py`) use the same `./chroma_db` directory:
+- Run `1_indexing.py` first to create the initial database, OR
+- Run any of the other scripts (they'll create it if missing)
+- `4_incremental_index.py` can be used to add new documents without re-processing existing ones
 - Subsequent runs are **much faster** since they reuse the existing database
 
 ## Usage Examples
@@ -177,6 +209,42 @@ Testing retrieval with a sample query...
 Query: What is task decomposition?
 
 Retrieved 2 documents:
+...
+```
+
+### Running the Incremental Indexing
+
+```bash
+$ python 4_incremental_index.py
+============================================================
+Incremental RAG Indexing Pipeline
+============================================================
+
+Loading documents from web...
+Loaded 2 document(s)
+Total characters: 72333
+
+First 500 characters:
+...
+
+Splitting documents...
+Split into 225 sub-documents
+Deduplicated: 225 → 225 unique chunks
+
+Loaded existing vector store from ./chroma_db
+No new documents to index
+
+Testing retrieval with sample queries...
+
+Query: What is task decomposition?
+
+Retrieved 2 documents:
+--- Document 1 ---
+Content: Task decomposition is a technique used in AI systems...
+...
+==================================
+
+Query: What is Chain-of-Thought
 ...
 ```
 
@@ -260,49 +328,13 @@ RAG applications are susceptible to indirect prompt injection. Retrieved documen
 
 ## Next Steps
 
-- **Implement incremental indexing**: Add an `incremental_index()` function to only add new documents to existing vector stores, avoiding re-processing of unchanged content. Here's an example implementation:
-
-  ```python
-  def incremental_index(urls, vector_store_path="./chroma_db", embedding_provider="openai"):
-      """Incrementally index new documents by checking existing document hashes."""
-      # Load existing vector store
-      vector_store = load_vector_store(vector_store_path, embedding_provider)
-      
-      # Get existing document hashes from metadata
-      existing_hashes = set()
-      if hasattr(vector_store, '_collection'):
-          try:
-              results = vector_store._collection.get(include=['metadatas'])
-              for metadata in results['metadatas']:
-                  if 'doc_hash' in metadata:
-                      existing_hashes.add(metadata['doc_hash'])
-          except:
-              pass  # No existing collection or error
-      
-      # Load and process new documents
-      docs = load_documents(urls)
-      new_docs = []
-      
-      for doc in docs:
-          doc_hash = hashlib.md5(doc.page_content.encode()).hexdigest()
-          if doc_hash not in existing_hashes:
-              # Add metadata
-              doc.metadata['doc_hash'] = doc_hash
-              doc.metadata['indexed_at'] = datetime.now().isoformat()
-              new_docs.append(doc)
-      
-      if new_docs:
-          # Split and add new documents only
-          split_docs = split_documents(new_docs)
-          vector_store.add_documents(split_docs)
-          print(f"Added {len(split_docs)} new document chunks")
-      else:
-          print("No new documents to index")
-      
-      return vector_store
-  ```
-
+- **Use incremental indexing**: Run `4_incremental_index.py` to add new documents without re-processing existing ones
 - Experiment with different embedding models (OpenAI `text-embedding-3-large`, other Hugging Face models)
+- Add [conversation memory](https://docs.langchain.com/oss/python/langchain/short-term-memory) to support multi-turn interactions
+- Add [long-term memory](https://docs.langchain.com/oss/python/langchain/long-term-memory) across conversation threads
+- Implement [structured responses](https://docs.langchain.com/oss/python/langchain/structured-output)
+- Use [different vector stores](https://docs.langchain.com/oss/python/integrations/vectorstores) (Pinecone, Chroma, etc.)
+- Build complex workflows with [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview)
 - Add [conversation memory](https://docs.langchain.com/oss/python/langchain/short-term-memory) to support multi-turn interactions
 - Add [long-term memory](https://docs.langchain.com/oss/python/langchain/long-term-memory) across conversation threads
 - Implement [structured responses](https://docs.langchain.com/oss/python/langchain/structured-output)

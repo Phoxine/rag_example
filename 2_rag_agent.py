@@ -92,9 +92,14 @@ def build_vector_store():
     # 5. Add metadata and deduplicate (very important!)
     seen_hashes = set()
     unique_docs = []
+    
+    def normalize(text):
+        import re
+        return re.sub(r"\s+", " ", text.strip().lower())
 
     for i, doc in enumerate(all_splits):
-        content_hash = md5(doc.page_content.encode()).hexdigest()
+        content = normalize(doc.page_content)
+        content_hash = md5(content.encode()).hexdigest()
 
         # Skip duplicates
         if content_hash in seen_hashes:

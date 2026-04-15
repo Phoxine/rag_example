@@ -111,43 +111,44 @@ def load_vector_store(vector_store_path="./chroma_db", embedding_provider="opena
 
 
 def incremental_index(urls, vector_store_path="./chroma_db", embedding_provider="openai"):
-    """Incrementally index new documents by checking existing document hashes."""
-    # Load existing vector store
     vector_store = load_vector_store(vector_store_path, embedding_provider)
-
-    # Get existing document hashes from metadata
+    # return vector_store
     existing_hashes = set()
-    if hasattr(vector_store, '_collection'):
-        try:
-            results = vector_store._collection.get(include=['metadatas'])
-            for metadata in results['metadatas']:
-                if 'doc_hash' in metadata:
-                    existing_hashes.add(metadata['doc_hash'])
-        except:
-            pass  # No existing collection or error
-    print(f"Number of existing document hashes: {len(existing_hashes)}")
-    # Load and process new documents
+    try:
+        results = vector_store._collection.get(include=['metadatas'])
+        for metadata in results['metadatas']:
+            if metadata and 'doc_hash' in metadata:
+                existing_hashes.add(metadata['doc_hash'])
+    except:
+        pass
+
     docs = load_documents(urls)
-    new_docs = []
+    split_docs = split_documents(docs)
 
-    for doc in docs:
-        doc_hash = hashlib.md5(doc.page_content.encode()).hexdigest()
-        if doc_hash not in existing_hashes:
-            # Add metadata
-            doc.metadata['doc_hash'] = doc_hash
-            doc.metadata['indexed_at'] = datetime.datetime.now().isoformat()
-            new_docs.append(doc)
+    def normalize(text):
+        import re
+        return re.sub(r"\s+", " ", text.strip().lower())
 
-    if new_docs:
-        # Split and add new documents only
-        split_docs = split_documents(new_docs)
-        vector_store.add_documents(split_docs)
-        print(f"Added {len(split_docs)} new document chunks")
+    new_chunks = []
+    seen_hashes = set()
+
+    for chunk in split_docs:
+        content = normalize(chunk.page_content)
+        chunk_hash = hashlib.md5(content.encode()).hexdigest()
+
+        if chunk_hash not in existing_hashes and chunk_hash not in seen_hashes:
+            chunk.metadata['doc_hash'] = chunk_hash
+            chunk.metadata['indexed_at'] = datetime.datetime.now().isoformat()
+            seen_hashes.add(chunk_hash)
+            new_chunks.append(chunk)
+
+    if new_chunks:
+        vector_store.add_documents(new_chunks)
+        print(f"Added {len(new_chunks)} new chunks")
     else:
-        print("No new documents to index")
+        print("No new content")
 
     return vector_store
-
 
 def test_retrieval(vector_store):
     """
