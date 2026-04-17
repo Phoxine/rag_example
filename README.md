@@ -285,19 +285,53 @@ Task decomposition is a technique used in AI systems...
 
 ```
 
-### Running the RAG Chain
+### Running the RAG Chain 
+
+below is the real output from running `3_rag_chain.py`:
 
 ```bash
 $ python 3_rag_chain.py
 ...
-Your question: What is task decomposition?
+RAG Chain created successfully!
+Running sample queries...
 
-Processing...
+============================================================
+RAG Chain - Running Sample Queries
+============================================================
 
-Answer: Task decomposition is the process of breaking down complex tasks into smaller, 
-manageable subtasks...
+--- Query 1 ---
+Question: What is task decomposition?
+
+Answer: Task decomposition is the process of breaking down complex tasks into smaller, manageable subgoals. This can be achieved through various methods, such as prompting a language model, using task-specific instructions, or incorporating human inputs. It enables more efficient handling of complicated tasks and enhances overall performance.
 
 Retrieved 4 relevant documents
+------------------------------------------------------------
+
+--- Query 2 ---
+Question: What are the key components of an autonomous agent?
+
+Answer: In a LLM-powered autonomous agent system, the key components include the large language model (LLM) as the agent's brain, external APIs for additional information, and tools for tasks like code execution and accessing proprietary information. These components work together to enhance the agent's capabilities beyond just generating text.
+
+Retrieved 4 relevant documents
+------------------------------------------------------------
+
+--- Query 3 ---
+Question: How do agents use memory?
+
+Answer: Agents use memory through short-term and long-term memory systems. Short-term memory involves in-context learning, while long-term memory allows agents to retain and recall information over extended periods, often utilizing an external vector store for fast retrieval. This combination enables agents to behave based on past experiences and interact with other agents effectively.
+
+Retrieved 4 relevant documents
+------------------------------------------------------------
+
+--- Query 4 ---
+Question: What is the difference between CoT and ReAct?
+
+Answer: CoT (Chain-of-Thought) prompting generates a sequence of short sentences to describe reasoning step by step, while ReAct integrates reasoning and acting by combining task-specific actions with natural language reasoning. ReAct allows LLMs to interact with the environment through discrete actions, whereas CoT focuses on generating reasoning chains. Essentially, ReAct extends the action space beyond just reasoning, enabling more dynamic interactions.
+
+Retrieved 4 relevant documents
+------------------------------------------------------------
+
+Would you like to run in interactive mode? (yes/no): no
 ```
 
 ## Concepts and Terminology
