@@ -369,11 +369,6 @@ RAG applications are susceptible to indirect prompt injection. Retrieved documen
 - Implement [structured responses](https://docs.langchain.com/oss/python/langchain/structured-output)
 - Use [different vector stores](https://docs.langchain.com/oss/python/integrations/vectorstores) (Pinecone, Chroma, etc.)
 - Build complex workflows with [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview)
-- Add [conversation memory](https://docs.langchain.com/oss/python/langchain/short-term-memory) to support multi-turn interactions
-- Add [long-term memory](https://docs.langchain.com/oss/python/langchain/long-term-memory) across conversation threads
-- Implement [structured responses](https://docs.langchain.com/oss/python/langchain/structured-output)
-- Use [different vector stores](https://docs.langchain.com/oss/python/integrations/vectorstores) (Pinecone, Chroma, etc.)
-- Build complex workflows with [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview)
 
 ## License
 
